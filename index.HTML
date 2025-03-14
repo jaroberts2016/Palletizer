@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Palletizer Formula Calculator</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    fieldset { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; }
+    input, select { width: 200px; padding: 5px; margin-bottom: 10px; }
+    #result { margin-top: 20px; padding: 10px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>Palletizer Formula Calculator</h1>
+  <form id="calcForm">
+    <fieldset>
+      <legend>Part Box Details</legend>
+      <label>Part Box Length (in): <input type="number" id="part_box_length" step="any" required></label>
+      <label>Part Box Width (in): <input type="number" id="part_box_width" step="any" required></label>
+      <label>Part Box Height (in): <input type="number" id="part_box_height" step="any" required></label>
+      <label>Part Weight (lbs): <input type="number" id="part_weight" step="any" required></label>
+      <label>Part Quantity: <input type="number" id="part_quantity" required></label>
+    </fieldset>
+    <fieldset>
+      <legend>Pallet Specifications</legend>
+      <label>Pallet Length (in): <input type="number" id="pallet_length" step="any" required></label>
+      <label>Pallet Width (in): <input type="number" id="pallet_width" step="any" required></label>
+      <label>Pallet Max Height (in): <input type="number" id="pallet_max_height" step="any" required></label>
+      <label>Pallet Tare Weight (lbs): <input type="number" id="pallet_tare_weight" step="any" required></label>
+      <label>Pallet Max Weight Capacity (lbs): <input type="number" id="pallet_max_weight_capacity" step="any" required></label>
+    </fieldset>
+    <fieldset>
+      <legend>Stacking Constraints & Preferences</legend>
+      <label>Preferred Stacking Pattern:
+        <select id="stacking_pattern">
+          <option value="Column">Column</option>
+          <option value="Interlocking">Interlocking</option>
+          <option value="Auto-optimized">Auto-optimized</option>
+        </select>
+      </label>
+    </fieldset>
+    <button type="submit">Calculate</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    document.getElementById("calcForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      // Retrieve input values
+      const part_box_length = parseFloat(document.getElementById("part_box_length").value);
+      const part_box_width = parseFloat(document.getElementById("part_box_width").value);
+      const part_box_height = parseFloat(document.getElementById("part_box_height").value);
+      const part_weight = parseFloat(document.getElementById("part_weight").value);
+      const part_quantity = parseInt(document.getElementById("part_quantity").value, 10);
+
+      const pallet_length = parseFloat(document.getElementById("pallet_length").value);
+      const pallet_width = parseFloat(document.getElementById("pallet_width").value);
+      const pallet_max_height = parseFloat(document.getElementById("pallet_max_height").value);
+      const pallet_tare_weight = parseFloat(document.getElementById("pallet_tare_weight").value);
+      const pallet_max_weight_capacity = parseFloat(document.getElementById("pallet_max_weight_capacity").value);
+
+      const stacking_pattern = document.getElementById("stacking_pattern").value;
+
+      // Calculation logic
+      const floor = Math.floor;
+      const ceil = Math.ceil;
+
+      const normal_cols = floor(pallet_length / part_box_length);
+      const normal_rows = floor(pallet_width / part_box_width);
+      const normal_boxes = normal_cols * normal_rows;
+
+      const rotated_cols = floor(pallet_length / part_box_width);
+      const rotated_rows = floor(pallet_width / part_box_length);
+      const rotated_boxes = rotated_cols * rotated_rows;
+
+      let boxes_per_layer;
+      if (stacking_pattern === "Column") {
+        boxes_per_layer = normal_boxes;
+      } else if (stacking_pattern === "Interlocking") {
+        boxes_per_layer = Math.floor(Math.max(normal_boxes, rotated_boxes) * 1.1);
+      } else { // Auto-optimized
+        boxes_per_layer = Math.max(normal_boxes, rotated_boxes);
+      }
+
+      const layers = floor(pallet_max_height / part_box_height);
+      const capacity_by_space = boxes_per_layer * layers;
+      const capacity_by_weight = floor((pallet_max_weight_capacity - pallet_tare_weight) / part_weight);
+      const effective_capacity = Math.min(capacity_by_space, capacity_by_weight);
+      const recommended_pallets = effective_capacity > 0 ? ceil(part_quantity / effective_capacity) : 0;
+
+      // Display results
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = `
+        <h2>Calculation Results</h2>
+        <p>Boxes per layer: ${boxes_per_layer}</p>
+        <p>Number of layers possible: ${layers}</p>
+        <p>Capacity by space: ${capacity_by_space} boxes</p>
+        <p>Capacity by weight: ${capacity_by_weight} boxes</p>
+        <p>Effective capacity per pallet: ${effective_capacity} boxes</p>
+        <p>Recommended number of pallets: ${recommended_pallets}</p>
+      `;
+    });
+  </script>
+</body>
+</html>
